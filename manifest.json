@@ -1,0 +1,15 @@
+{
+    "manifest_version": 3,
+    "name": "Fastly Image Inspector",
+    "version": "1.5.0",
+    "description": "Inspect one image or audit a full page against verified Fastly image widths.",
+    "permissions": ["activeTab", "scripting", "storage"],
+    "optional_host_permissions": ["https://*/*"],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "action": {
+        "default_title": "Inspect image sizing"
+    },
+    "options_page": "options.html"
+}

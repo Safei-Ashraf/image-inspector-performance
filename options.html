@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Fastly Image Inspector settings</title>
+        <link rel="stylesheet" href="options.css" />
+    </head>
+    <body>
+        <main>
+            <header>
+                <span>Local Chrome extension</span>
+                <h1>Fastly Image Inspector</h1>
+                <p>Configure the DPR quality bar, your CDN hosts, and your verified CDN widths.</p>
+            </header>
+
+            <form id="settings-form">
+                <section>
+                    <h2>Quality policy</h2>
+                    <div class="field-grid">
+                        <label>
+                            <span>Desktop preferred DPR</span>
+                            <input name="desktopTargetDpr" type="number" min="1" max="4" step="0.25" required />
+                        </label>
+                        <label>
+                            <span>Mobile preferred DPR</span>
+                            <input name="mobileTargetDpr" type="number" min="1" max="4" step="0.25" required />
+                        </label>
+                        <label>
+                            <span>Mobile breakpoint (CSS px)</span>
+                            <input name="breakpoint" type="number" min="320" max="1600" step="1" required />
+                        </label>
+                        <label class="checkbox-field">
+                            <span>Use this device's actual DPR</span>
+                            <input name="useDeviceDpr" type="checkbox" />
+                            <small>Ignores the fixed desktop/mobile targets and audits against your current screen.</small>
+                        </label>
+                        <label>
+                            <span>Safety multiplier</span>
+                            <input name="safetyMargin" type="number" min="1" max="1.25" step="0.01" required />
+                            <small>Used only when the exact post-margin width is verified.</small>
+                        </label>
+                        <label>
+                            <span>Minimum width saving (%)</span>
+                            <input name="minWidthSavingPercent" type="number" min="0" max="50" step="1" required />
+                        </label>
+                        <label>
+                            <span>CDN width parameter</span>
+                            <input name="widthParameter" type="text" required />
+                        </label>
+                        <label>
+                            <span>Projected visits</span>
+                            <input name="projectedVisits" type="number" min="1" step="1000" required />
+                            <small>Defaults to 1 million complete page visits.</small>
+                        </label>
+                        <label>
+                            <span>Realized traffic (%)</span>
+                            <input name="realizedTrafficPercent" type="number" min="1" max="100" step="1" required />
+                            <small>Scales the projection for browser cache and lazy loading. 100% is the theoretical upper bound.</small>
+                        </label>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>CDN measurement</h2>
+                    <p>Hostnames whose image metadata the extension may request over HTTPS. Each host needs a one-time Chrome permission grant when you save. Nothing is measured until you add at least one host.</p>
+                    <label>
+                        <span>CDN hostnames</span>
+                        <input name="cdnHosts" type="text" required />
+                        <small>Comma- or space-separated suffixes, e.g. images.example.com, cdn.example.org. Subdomains are matched automatically.</small>
+                    </label>
+                    <small id="host-permission-status" role="status"></small>
+                </section>
+
+                <section>
+                    <h2>Verified CDN widths</h2>
+                    <p>Comma- or space-separated. Recommendations only use values in this list.</p>
+                    <textarea name="honoredWidths" rows="9" spellcheck="false" required></textarea>
+                    <div class="fetch-row">
+                        <label>
+                            <span>Width list URL (optional)</span>
+                            <input name="widthListUrl" type="url" placeholder="https://…/verified-widths.txt" />
+                            <small>Fetch a plain-text or JSON list of numbers to replace the embedded snapshot.</small>
+                        </label>
+                        <button id="fetch-widths" class="secondary" type="button">Fetch widths</button>
+                    </div>
+                    <small id="width-list-status" role="status"></small>
+                </section>
+
+                <div class="actions">
+                    <button type="submit">Save settings</button>
+                    <button id="restore-defaults" class="secondary" type="button">Restore verified defaults</button>
+                    <span id="status" role="status"></span>
+                </div>
+            </form>
+        </main>
+        <script src="analysis.js"></script>
+        <script src="options.js"></script>
+    </body>
+</html>
