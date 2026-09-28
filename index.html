@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Fastly Image Inspector — Install &amp; Usage Guide</title>
+        <meta
+            name="description"
+            content="Chrome extension that audits rendered images against verified Fastly CDN widths and shows exactly which ones can safely shrink."
+        />
+        <script>
+            // Apply the saved theme before first paint; dark is the default.
+            document.documentElement.dataset.theme = localStorage.getItem('fii-theme') || 'dark';
+        </script>
+        <style>
+            :root {
+                --ink: #f3f3f8;
+                --body: #c6c6d2;
+                --muted: #8f8fa0;
+                --line: #2d2d3b;
+                --bg: #121218;
+                --card: #1c1c26;
+                --card-soft: #23232f;
+                --code-bg: #2a2a38;
+                --brand: #7b7bf0;
+                --brand-dark: #5b5bd6;
+                --green: #22c55e;
+                --yellow: #eab308;
+                --orange: #f97316;
+                --red: #ef4444;
+                --gray: #9ca3af;
+                --shadow: 0 8px 30px rgb(0 0 0 / 35%);
+            }
+
+            [data-theme="light"] {
+                --ink: #17171f;
+                --body: #444451;
+                --muted: #777785;
+                --line: #e4e4ec;
+                --bg: #f6f6f9;
+                --card: #ffffff;
+                --card-soft: #f0f0f5;
+                --code-bg: #eeeef4;
+                --brand: #5b5bd6;
+                --brand-dark: #4646b8;
+                --shadow: 0 8px 30px rgb(24 24 42 / 5%);
+            }
+
+            * { box-sizing: border-box; }
+
+            html { scroll-behavior: smooth; }
+
+            body {
+                margin: 0;
+                color: var(--body);
+                background: var(--bg);
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                font-size: 16px;
+                line-height: 1.6;
+                transition: background 0.25s ease, color 0.25s ease;
+            }
+
+            h1, h2, h3 { color: var(--ink); letter-spacing: -0.02em; line-height: 1.15; }
+            h2 { margin: 0 0 8px; font-size: clamp(24px, 4vw, 34px); }
+            h3 { margin: 0 0 6px; font-size: 17px; }
+            p { margin: 0 0 12px; }
+            a { color: var(--brand); }
+            code, kbd {
+                padding: 2px 7px;
+                color: var(--ink);
+                background: var(--code-bg);
+                border-radius: 6px;
+                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-size: 0.85em;
+            }
+            kbd { border: 1px solid var(--line); border-bottom-width: 2px; background: var(--card); }
+
+            .wrap { width: min(1400px, calc(100% - 48px)); margin: 0 auto; }
+            section { padding: 64px 0; }
+            .band { background: var(--card); border-block: 1px solid var(--line); }
+            .section-eyebrow {
+                margin-bottom: 6px;
+                color: var(--brand);
+                font-size: 12px;
+                font-weight: 800;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+            }
+            .section-lead { max-width: 640px; margin-bottom: 32px; color: var(--muted); }
+
+            /* Theme toggle */
+            .theme-toggle {
+                position: fixed;
+                top: 16px;
+                right: 16px;
+                z-index: 50;
+                display: grid;
+                place-items: center;
+                width: 42px;
+                height: 42px;
+                color: var(--ink);
+                background: var(--card);
+                border: 1px solid var(--line);
+                border-radius: 50%;
+                font-size: 18px;
+                cursor: pointer;
+                box-shadow: var(--shadow);
+                transition: transform 0.15s ease;
+            }
+            .theme-toggle:hover { transform: scale(1.08); }
+
+            /* Internal onboarding banner */
+            .internal-banner {
+                position: sticky;
+                top: 0;
+                z-index: 40;
+                display: block;
+                padding: 10px 16px;
+                color: #101628;
+                background: #feee00;
+                border-bottom: 1px solid rgb(16 22 40 / 15%);
+                font-size: 13px;
+                text-align: center;
+                text-decoration: none;
+            }
+            .internal-banner:hover { background: #f5e200; }
+            .internal-banner strong { color: #101628; }
+
+            /* Hero */
+            .hero {
+                position: relative;
+                overflow: hidden;
+                padding: 96px 0 80px;
+                color: #fff;
+                text-align: center;
+                background:
+                    radial-gradient(1200px 500px at 85% -10%, rgb(91 91 214 / 55%), transparent 60%),
+                    radial-gradient(900px 420px at 5% 110%, rgb(34 197 94 / 25%), transparent 55%),
+                    #17171f;
+            }
+            .hero .wrap { display: flex; flex-direction: column; align-items: center; }
+            .hero h1 { margin: 14px 0; color: #fff; font-size: clamp(36px, 6vw, 58px); }
+            .hero p { max-width: 620px; margin-inline: auto; color: #b8b8c4; font-size: 18px; }
+            .hero-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 6px 14px;
+                color: #d7d7ff;
+                background: rgb(91 91 214 / 18%);
+                border: 1px solid rgb(91 91 214 / 45%);
+                border-radius: 999px;
+                font-size: 12px;
+                font-weight: 700;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+            }
+            .hero-mascot {
+                position: absolute;
+                top: 40px;
+                left: max(40px, calc((100% - 1400px) / 2 + 40px));
+                width: 88px;
+                transform: rotate(-6deg);
+                filter: drop-shadow(0 10px 18px rgb(0 0 0 / 45%));
+                transition: transform 0.25s ease;
+            }
+            .hero-mascot:hover { transform: rotate(0deg) scale(1.05); }
+            .hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 28px; }
+            .btn {
+                display: inline-block;
+                padding: 13px 22px;
+                color: #fff;
+                background: var(--brand-dark);
+                border-radius: 12px;
+                font-weight: 750;
+                text-decoration: none;
+            }
+            .btn:hover { background: var(--brand); }
+            .btn.secondary {
+                color: #fff;
+                background: rgb(255 255 255 / 8%);
+                border: 1px solid rgb(255 255 255 / 25%);
+            }
+            .btn.secondary:hover { background: rgb(255 255 255 / 15%); }
+
+            /* Cards */
+            .grid { display: grid; gap: 16px; }
+            .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .card {
+                padding: 22px;
+                background: var(--card);
+                border: 1px solid var(--line);
+                border-radius: 16px;
+                box-shadow: var(--shadow);
+            }
+            .card p { margin: 0; font-size: 14px; }
+            .card .icon {
+                display: inline-grid;
+                place-items: center;
+                width: 40px;
+                height: 40px;
+                margin-bottom: 14px;
+                color: #fff;
+                background: var(--brand-dark);
+                border-radius: 12px;
+                font-size: 19px;
+            }
+
+            /* Steps */
+            .steps { counter-reset: step; display: grid; gap: 12px; max-width: 860px; margin-inline: auto; }
+            .step {
+                counter-increment: step;
+                display: grid;
+                grid-template-columns: 44px 1fr;
+                gap: 16px;
+                align-items: start;
+                padding: 18px 20px;
+                background: var(--card);
+                border: 1px solid var(--line);
+                border-radius: 14px;
+            }
+            .step::before {
+                content: counter(step);
+                display: grid;
+                place-items: center;
+                width: 34px;
+                height: 34px;
+                color: #fff;
+                background: var(--brand-dark);
+                border-radius: 10px;
+                font-weight: 800;
+            }
+            .step h3 { margin: 4px 0; }
+            .step p { margin: 0; font-size: 14px; }
+
+            /* Color legend */
+            .legend { display: grid; gap: 10px; }
+            .legend-row {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                padding: 12px 16px;
+                background: var(--card);
+                border: 1px solid var(--line);
+                border-radius: 12px;
+                font-size: 14px;
+            }
+            .swatch {
+                flex: none;
+                width: 26px;
+                height: 26px;
+                border: 4px solid var(--green);
+                border-radius: 7px;
+            }
+            .swatch.yellow { border-color: var(--yellow); }
+            .swatch.orange { border-color: var(--orange); }
+            .swatch.red { border-color: var(--red); }
+            .swatch.gray { border-color: var(--gray); }
+            .legend-row strong { color: var(--ink); }
+
+            /* Feature list */
+            .features { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+            .features li {
+                position: relative;
+                padding: 10px 14px 10px 38px;
+                background: var(--bg);
+                border: 1px solid var(--line);
+                border-radius: 10px;
+                font-size: 14px;
+            }
+            .features li::before {
+                content: "✓";
+                position: absolute;
+                left: 14px;
+                color: var(--green);
+                font-weight: 800;
+            }
+
+            /* Mock panel */
+            .mock {
+                overflow: hidden;
+                background: var(--card);
+                border: 1px solid var(--line);
+                border-radius: 16px;
+                box-shadow: var(--shadow);
+            }
+            .mock-bar {
+                display: flex;
+                gap: 6px;
+                padding: 12px 16px;
+                background: var(--card-soft);
+                border-bottom: 1px solid var(--line);
+            }
+            .mock-bar i { width: 11px; height: 11px; border-radius: 50%; background: var(--muted); opacity: 0.4; }
+            .mock-body { padding: 20px; }
+            .mock-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 12px;
+                padding: 11px 14px;
+                margin-bottom: 8px;
+                border: 1px solid var(--line);
+                border-inline-start: 4px solid var(--red);
+                border-radius: 10px;
+                font-size: 13px;
+            }
+            .mock-row.medium { border-inline-start-color: var(--orange); }
+            .mock-row.keep { border-inline-start-color: var(--green); }
+            .mock-row b { color: var(--ink); }
+            .mock-badge {
+                padding: 2px 8px;
+                color: #166534;
+                background: #dcfce7;
+                border-radius: 999px;
+                font-size: 10px;
+                font-weight: 800;
+                text-transform: uppercase;
+                white-space: nowrap;
+            }
+            .mock-badge.est { color: #92400e; background: #fef3c7; }
+
+            table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 14px; overflow: hidden; }
+            th, td { padding: 11px 14px; border-bottom: 1px solid var(--line); font-size: 14px; text-align: left; }
+            th { color: var(--ink); background: var(--card-soft); font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; }
+            tr:last-child td { border-bottom: 0; }
+
+            details {
+                padding: 14px 18px;
+                margin-bottom: 10px;
+                background: var(--card);
+                border: 1px solid var(--line);
+                border-radius: 12px;
+            }
+            summary { color: var(--ink); font-weight: 700; cursor: pointer; }
+            details p { margin: 10px 0 0; font-size: 14px; }
+
+            footer {
+                padding: 36px 0 48px;
+                color: var(--muted);
+                border-top: 1px solid var(--line);
+                font-size: 13px;
+                text-align: center;
+            }
+
+            @media (max-width: 1100px) {
+                .hero-mascot { width: 72px; top: 28px; left: 24px; }
+            }
+            @media (max-width: 900px) {
+                .hero-mascot { display: none; }
+            }
+            @media (max-width: 720px) {
+                .grid.cols-3, .grid.cols-2 { grid-template-columns: 1fr; }
+                section { padding: 44px 0; }
+            }
+        </style>
+    </head>
+    <body>
+        <button class="theme-toggle" type="button" aria-label="Toggle light and dark theme" title="Toggle theme">☀️</button>
+
+        <a
+            class="internal-banner"
+            href="https://docs.google.com/document/d/1lGRN_mMbOQ_3RtNiPZpWQUIV49neca9AmQWWzW8lms8/edit?usp=sharing"
+            target="_blank"
+            rel="noopener noreferrer"
+        >
+            <strong>on a noon laptop?</strong>&nbsp; Here's a bonus internal setup config starter →
+        </a>
+
+        <header class="hero">
+            <img class="hero-mascot" src="mascot.png" alt="Fastly Image Inspector mascot" />
+            <div class="wrap">
+                <span class="hero-badge">Chrome extension · v1.5</span>
+                <h1>Fastly Image Inspector</h1>
+                <p>
+                    Click any image on a page — or audit the whole page at once — and find out which images can
+                    safely be served at a smaller verified CDN width, with measured byte savings and a ready-made
+                    fix prompt for your coding agent.
+                </p>
+                <div class="hero-actions">
+                    <a class="btn" href="https://github.com/Safei-Ashraf/image-inspector-performance/archive/refs/heads/main.zip">Download the extension (.zip)</a>
+                    <a class="btn secondary" href="https://github.com/Safei-Ashraf/image-inspector-performance">View repository</a>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <section id="what">
+                <div class="wrap">
+                    <div class="section-eyebrow">What it does</div>
+                    <h2>Three ways to catch oversized images</h2>
+                    <p class="section-lead">
+                        The extension compares each rendered image against the widths your Fastly CDN actually honors,
+                        at the DPR you actually target — and tells you the exact safe width to request instead.
+                    </p>
+                    <div class="grid cols-3">
+                        <div class="card">
+                            <span class="icon">🖱</span>
+                            <h3>Inspect one image</h3>
+                            <p>Click the toolbar icon, then click any image. Get an instant <strong>Keep as is</strong> or <strong>Use Npx</strong> verdict with the full sizing math.</p>
+                        </div>
+                        <div class="card">
+                            <span class="icon">📊</span>
+                            <h3>Audit the full page</h3>
+                            <p>One click scrolls the page to trigger lazy images, scans every <code>&lt;img&gt;</code> (including shadow DOM) and CSS background, and ranks every source by savings.</p>
+                        </div>
+                        <div class="card">
+                            <span class="icon">🤖</span>
+                            <h3>Hand off to an agent</h3>
+                            <p>Generate a portable Markdown task with measured totals, exact width changes, and safety constraints — ready to paste into any coding agent.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="install" class="band">
+                <div class="wrap">
+                    <div class="section-eyebrow">Install</div>
+                    <h2>Six steps, two minutes</h2>
+                    <p class="section-lead">
+                        The extension runs as a local, unpacked extension. No store, no account, no cost — just load
+                        the folder once and Chrome keeps it installed.
+                    </p>
+                    <div class="steps">
+                        <div class="step">
+                            <div>
+                                <h3>Get the code</h3>
+                                <p>Either download and unzip the <a href="https://github.com/Safei-Ashraf/image-inspector-performance/archive/refs/heads/main.zip">latest ZIP</a>, or clone it: <code>git clone https://github.com/Safei-Ashraf/image-inspector-performance.git</code>. Cloning makes future updates a one-liner.</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div>
+                                <h3>Open the extensions page</h3>
+                                <p>Type <code>chrome://extensions</code> in the address bar and press Enter.</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div>
+                                <h3>Enable Developer mode</h3>
+                                <p>Flip the <strong>Developer mode</strong> toggle in the top-right corner.</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div>
+                                <h3>Load unpacked</h3>
+                                <p>Click <strong>Load unpacked</strong> and select the <code>image-inspector-performance</code> folder (the one containing <code>manifest.json</code>).</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div>
+                                <h3>Pin it</h3>
+                                <p>Click the puzzle-piece icon in the toolbar and pin <strong>Fastly Image Inspector</strong> so it's always one click away.</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div>
+                                <h3>Add your CDN host</h3>
+                                <p>Open the extension's <strong>Options</strong>, add your CDN hostname(s) under <strong>CDN measurement</strong>, and save — Chrome will ask for a one-time permission. Nothing is measured until you do this.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="use">
+                <div class="wrap">
+                    <div class="section-eyebrow">Use</div>
+                    <h2>Read an audit at a glance</h2>
+                    <p class="section-lead">
+                        Open any page, click the extension icon, then click <strong>Analyze full page</strong>. Every
+                        image gets a colored outline and the dashboard ranks sources from highest to lowest opportunity.
+                    </p>
+                    <div class="grid cols-2" style="align-items:start">
+                        <div class="legend">
+                            <div class="legend-row"><span class="swatch"></span><div><strong>Green — keep as is.</strong> Already optimal or source-limited.</div></div>
+                            <div class="legend-row"><span class="swatch yellow"></span><div><strong>Yellow — low savings.</strong> Small win; fix when convenient.</div></div>
+                            <div class="legend-row"><span class="swatch orange"></span><div><strong>Orange — medium savings.</strong> Worth reviewing.</div></div>
+                            <div class="legend-row"><span class="swatch red"></span><div><strong>Red — high savings.</strong> Must fix; biggest byte wins.</div></div>
+                            <div class="legend-row"><span class="swatch gray"></span><div><strong>Gray — not measurable.</strong> Hidden or never loaded; scroll it into view and rerun.</div></div>
+                        </div>
+                        <div class="mock">
+                            <div class="mock-bar"><i></i><i></i><i></i></div>
+                            <div class="mock-body">
+                                <div class="mock-row"><span><b>2400px → 480px</b><br />Hero banner · Save 812 kB (74%)</span><span class="mock-badge">Measured</span></div>
+                                <div class="mock-row medium"><span><b>1080px → 640px</b><br />Category tile · Save 41% (est.)</span><span class="mock-badge est">Estimated</span></div>
+                                <div class="mock-row keep"><span><b>Keep 320px</b><br />Thumbnail · source-limited</span><span class="mock-badge">Keep</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <p style="margin-top:20px;font-size:14px">
+                        Every saving carries a <strong>Measured</strong> badge (real response bytes from the CDN) or an
+                        <strong>Estimated</strong> badge (pixel-area estimate) — never treat estimates as measurements.
+                        Press <kbd>Esc</kbd> or click the toolbar icon again to stop inspecting.
+                    </p>
+                </div>
+            </section>
+
+            <section id="features" class="band">
+                <div class="wrap">
+                    <div class="section-eyebrow">Dashboard</div>
+                    <h2>What's in the results panel</h2>
+                    <p class="section-lead">The completed audit stays open while you work the page.</p>
+                    <ul class="features">
+                        <li><strong>Ranked results</strong> with exact width changes (e.g. <code>2400px → 480px</code>), saved bytes and percent, and the DPR that stays covered.</li>
+                        <li><strong>Payload totals</strong> — current vs. optimized unique image bytes, per-visit savings, and a projection (labeled as an upper bound unless you set a realized-traffic factor).</li>
+                        <li><strong>Filters</strong> by High / Medium / Low / Keep / N-A severity.</li>
+                        <li><strong>Locate</strong> — click any row to scroll its image into view, pulse its border, and show the safe step.</li>
+                        <li><strong>Hover &amp; pin</strong> — hover any outlined image for a quick verdict; click to pin its full analysis above the results.</li>
+                        <li><strong>srcset warnings</strong> — responsive images are flagged as sampled at the current viewport only.</li>
+                        <li><strong>Implementation benchmark</strong> — whether each row should add, replace, or keep its width parameter, with a shared <code>setImageWidth</code> helper.</li>
+                        <li><strong>Generate task prompt</strong> — preview, copy, or download a Markdown handoff for a coding agent.</li>
+                        <li><strong>Draggable &amp; minimizable</strong> — drag by the header, resize from the corner, minimize without losing the audit.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="settings">
+                <div class="wrap">
+                    <div class="section-eyebrow">Settings</div>
+                    <h2>Tune the policy in Options</h2>
+                    <p class="section-lead">
+                        Right-click the toolbar icon → <strong>Options</strong> (or use the Settings button in the panel).
+                    </p>
+                    <table>
+                        <tr><th>Setting</th><th>Default</th><th>What it controls</th></tr>
+                        <tr><td>Desktop / mobile preferred DPR</td><td>2 / 3</td><td>The sharpness bar recommendations must preserve.</td></tr>
+                        <tr><td>Use this device's actual DPR</td><td>Off</td><td>Audit against your screen's real DPR instead of fixed targets.</td></tr>
+                        <tr><td>Mobile breakpoint</td><td>768 CSS px</td><td>Where the mobile DPR target applies.</td></tr>
+                        <tr><td>Safety multiplier</td><td>1.05</td><td>Headroom, used only when the exact post-margin width is verified.</td></tr>
+                        <tr><td>Minimum width saving</td><td>5%</td><td>Below this, the image is kept as is.</td></tr>
+                        <tr><td>Projected visits / realized traffic</td><td>1,000,000 / 100%</td><td>The traffic projection; lower the percentage for a cache-adjusted estimate.</td></tr>
+                        <tr><td>CDN hostnames</td><td>None — add yours</td><td>Hosts the extension may measure. Each needs a one-time Chrome permission.</td></tr>
+                        <tr><td>Verified CDN widths</td><td>Built-in starter list</td><td>The only widths recommendations may use. Editable, or fetch a fresh list from a URL.</td></tr>
+                    </table>
+                </div>
+            </section>
+
+            <section id="update" class="band">
+                <div class="wrap">
+                    <div class="section-eyebrow">Stay current</div>
+                    <h2>Updating takes seconds</h2>
+                    <div class="grid cols-2">
+                        <div class="card">
+                            <h3>If you cloned with git</h3>
+                            <p>Run <code>git pull</code> inside the folder, then press the reload icon on the extension card at <code>chrome://extensions</code>.</p>
+                        </div>
+                        <div class="card">
+                            <h3>If you downloaded the ZIP</h3>
+                            <p>Download the latest ZIP, extract it over the old folder (or remove the extension and load the new folder), then reload at <code>chrome://extensions</code>.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="faq">
+                <div class="wrap">
+                    <div class="section-eyebrow">FAQ</div>
+                    <h2>Troubleshooting</h2>
+                    <p class="section-lead">The common bumps, solved.</p>
+                    <details>
+                        <summary>The toolbar icon shows a red "!" badge</summary>
+                        <p>The page couldn't be injected — Chrome Web Store pages, <code>chrome://</code> pages, and PDFs are off-limits to all extensions. Try a regular page.</p>
+                    </details>
+                    <details>
+                        <summary>Images show as gray / "Not measurable"</summary>
+                        <p>They were hidden or still loading during the audit. The audit already auto-scrolls and waits, but some carousels and late-mounted widgets need a manual scroll — then press <strong>Run again</strong>.</p>
+                    </details>
+                    <details>
+                        <summary>A saving says "Estimated" instead of "Measured"</summary>
+                        <p>The optimized variant couldn't be fetched from the CDN (non-CDN host, or a blocked request), so the byte figure is a pixel-area estimate. Treat it as indicative, not exact.</p>
+                    </details>
+                    <details>
+                        <summary>Nothing is being measured at all</summary>
+                        <p>No CDN hostname is configured yet. Open Options, add your CDN host(s) under <strong>CDN measurement</strong>, and save — Chrome requires a one-time permission grant per host.</p>
+                    </details>
+                    <details>
+                        <summary>How do I remove it?</summary>
+                        <p>Go to <code>chrome://extensions</code> and click <strong>Remove</strong> on the Fastly Image Inspector card. The folder can then be deleted.</p>
+                    </details>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="wrap">
+                <p>
+                    Fastly Image Inspector ·
+                    <a href="https://github.com/Safei-Ashraf/image-inspector-performance">repository</a> ·
+                    recommendations use only verified CDN widths
+                </p>
+            </div>
+        </footer>
+
+        <script>
+            const toggle = document.querySelector('.theme-toggle');
+            const syncIcon = () => {
+                toggle.textContent = document.documentElement.dataset.theme === 'dark' ? '☀️' : '🌙';
+            };
+            toggle.addEventListener('click', () => {
+                const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+                document.documentElement.dataset.theme = next;
+                localStorage.setItem('fii-theme', next);
+                syncIcon();
+            });
+            syncIcon();
+        </script>
+    </body>
+</html>
