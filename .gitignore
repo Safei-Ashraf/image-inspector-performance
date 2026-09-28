@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+
+# Local verification screenshots — contain internal site imagery, never publish
+browser-verification*.png
+
+# Internal onboarding doc — internal-only, copy-paste into the internal wiki then discard
+INTERNAL-GUIDE.md
+
+# Packaging artifacts
+*.zip
+
+# Dependencies (if ever added)
+node_modules/
