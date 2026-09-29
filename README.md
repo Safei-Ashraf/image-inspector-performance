@@ -1,7 +1,11 @@
 # Image Inspector
 
-An internal Chrome extension (Manifest V3, loaded unpacked) that checks whether a rendered image can safely use a
-smaller verified CDN width — for one image, or for the whole page at once.
+A Chrome extension (Manifest V3, loaded unpacked) that checks whether a rendered image can safely use a smaller
+verified CDN width — for one image, or for the whole page at once.
+
+It ships ready for **Fastly Image Optimizer**, but it is **not Fastly-only**: the CDN hostnames, the width query
+parameter, and the verified width list are all configurable, so it works with any HTTPS CDN that resizes images
+through a URL parameter (imgix, Cloudflare Image Resizing, a self-hosted thumbor/imgproxy, and so on).
 
 > **Reading this on GitHub?** A richer visual version of this guide lives on the project's GitHub Pages site
 > (`index.html` in this repo).  https://safei-ashraf.github.io/image-inspector-performance/ 
@@ -18,6 +22,36 @@ smaller verified CDN width — for one image, or for the whole page at once.
 
 Outline colors: **green** keep as is · **yellow** low savings · **orange** medium · **red** high ·
 **gray** not measurable (hidden or not loaded during the audit).
+
+## Works with your CDN
+
+Three settings adapt the extension to your stack — all in **Options**, no code changes:
+
+| CDN | CDN hostnames | Width parameter | Verified widths |
+| --- | --- | --- | --- |
+| Fastly Image Optimizer | `your-fastly-host.com` | `width` (default) | Built-in starter list — replace with your probed values |
+| imgix | `your-account.imgix.net` | `w` | Your probed imgix widths |
+| Cloudflare Image Resizing | `your-site.com` | `width` (default) | Your probed widths |
+| thumbor / imgproxy / custom | `images.example.com` | whatever your URLs use, e.g. `w` | Your probed widths |
+
+Setup per CDN:
+
+1. **Options → CDN measurement** — add your CDN hostname(s). Chrome asks for a one-time host permission; subdomains
+   match automatically. Nothing is measured until at least one host is configured.
+2. **Options → CDN width parameter** — the query parameter your CDN resizes with (`width`, `w`, …). The extension
+   reads it to detect the currently requested width and rewrites it in recommended URLs.
+3. **Options → Verified CDN widths** — the only values recommendations may use. Paste your own list, or point the
+   **Width list URL** at a plain-text/JSON list and click **Fetch widths** (the page warns when a fetched list is
+   older than 30 days).
+
+**How to probe your CDN's honored widths:** request an image with a candidate width
+(`image.png?width=480`) and check the *delivered* width of the response. Keep every value the CDN honors exactly;
+drop values it rounds, clamps, or upscales. That list is what makes recommendations safe.
+
+**Measurement depth differs by CDN:** on Fastly hosts the audit reads `fastly-io-info` response headers (delivered
+dimensions + encoded bytes) for fully **Measured** savings. On any other HTTPS host it still measures bytes via
+`content-length`; when an optimized variant can't be fetched, savings fall back to a pixel-area estimate and are
+badged **Estimated**.
 
 ## Install
 
