@@ -376,7 +376,8 @@
                 <p>
                     Click any image on a page — or audit the whole page at once — and find out which images can
                     safely be served at a smaller verified CDN width, with measured byte savings and a ready-made
-                    fix prompt for your coding agent.
+                    fix prompt for your coding agent. Fastly-ready out of the box, configurable for any CDN that
+                    resizes via URL parameter.
                 </p>
                 <div class="hero-actions">
                     <a class="btn" href="https://github.com/Safei-Ashraf/image-inspector-performance/archive/refs/heads/main.zip">Download the extension (.zip)</a>
@@ -414,7 +415,50 @@
                 </div>
             </section>
 
-            <section id="install" class="band">
+            <section id="cdns" class="band">
+                <div class="wrap">
+                    <div class="section-eyebrow">Any CDN</div>
+                    <h2>Not just Fastly</h2>
+                    <p class="section-lead">
+                        The CDN hostnames, the width query parameter, and the verified width list are all settings —
+                        no code changes needed. If your CDN resizes images through a URL parameter, the inspector
+                        can audit it.
+                    </p>
+                    <table>
+                        <tr><th>CDN</th><th>Hostnames setting</th><th>Width parameter</th></tr>
+                        <tr><td>Fastly Image Optimizer</td><td><code>your-fastly-host.com</code></td><td><code>width</code> (default)</td></tr>
+                        <tr><td>imgix</td><td><code>your-account.imgix.net</code></td><td><code>w</code></td></tr>
+                        <tr><td>Cloudflare Image Resizing</td><td><code>your-site.com</code></td><td><code>width</code> (default)</td></tr>
+                        <tr><td>thumbor / imgproxy / custom</td><td><code>images.example.com</code></td><td>whatever your URLs use</td></tr>
+                    </table>
+                    <div class="grid cols-3" style="margin-top:20px">
+                        <div class="card">
+                            <span class="icon">🌐</span>
+                            <h3>1 · Add your hosts</h3>
+                            <p>Options → <strong>CDN measurement</strong> → add your CDN hostnames. Chrome asks for a one-time permission; subdomains match automatically.</p>
+                        </div>
+                        <div class="card">
+                            <span class="icon">🔧</span>
+                            <h3>2 · Set the parameter</h3>
+                            <p>Options → <strong>CDN width parameter</strong> → the query key your CDN resizes with (<code>width</code>, <code>w</code>, …). Used to detect and rewrite requested widths.</p>
+                        </div>
+                        <div class="card">
+                            <span class="icon">📏</span>
+                            <h3>3 · Verify your widths</h3>
+                            <p>Options → <strong>Verified CDN widths</strong> → paste your probed list, or fetch it from a URL. Recommendations only ever use values in this list.</p>
+                        </div>
+                    </div>
+                    <p style="margin-top:20px;font-size:14px">
+                        <strong>Probing tip:</strong> request <code>image.png?width=480</code> and check the delivered
+                        width of the response — keep the values your CDN honors exactly, drop the ones it rounds or
+                        clamps. <strong>Measurement depth:</strong> Fastly hosts get full <code>fastly-io-info</code>
+                        metadata (dimensions + bytes); other HTTPS hosts still get <code>content-length</code> byte
+                        measurements, and anything unfetchable is clearly badged <strong>Estimated</strong>.
+                    </p>
+                </div>
+            </section>
+
+            <section id="install">
                 <div class="wrap">
                     <div class="section-eyebrow">Install</div>
                     <h2>Six steps, two minutes</h2>
@@ -463,7 +507,7 @@
                 </div>
             </section>
 
-            <section id="use">
+            <section id="use" class="band">
                 <div class="wrap">
                     <div class="section-eyebrow">Use</div>
                     <h2>Read an audit at a glance</h2>
@@ -496,7 +540,7 @@
                 </div>
             </section>
 
-            <section id="features" class="band">
+            <section id="features">
                 <div class="wrap">
                     <div class="section-eyebrow">Dashboard</div>
                     <h2>What's in the results panel</h2>
