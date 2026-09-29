@@ -1,10 +1,10 @@
-# Fastly Image Inspector
+# Image Inspector
 
 An internal Chrome extension (Manifest V3, loaded unpacked) that checks whether a rendered image can safely use a
-smaller verified Fastly CDN width — for one image, or for the whole page at once.
+smaller verified CDN width — for one image, or for the whole page at once.
 
 > **Reading this on GitHub?** A richer visual version of this guide lives on the project's GitHub Pages site
-> (`index.html` in this repo).
+> (`index.html` in this repo).  https://safei-ashraf.github.io/image-inspector-performance/ 
 
 ## What it does
 
