@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "Fastly Image Inspector",
+    "name": "Image Inspector",
     "version": "1.5.0",
-    "description": "Inspect one image or audit a full page against verified Fastly image widths.",
+    "description": "Inspect one image or audit a full page against verified CDN image widths.",
     "permissions": ["activeTab", "scripting", "storage"],
     "optional_host_permissions": ["https://*/*"],
     "background": {

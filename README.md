@@ -62,7 +62,7 @@ No store, no account — the extension runs unpacked:
 2. Open `chrome://extensions`.
 3. Enable **Developer mode** (top-right toggle).
 4. Click **Load unpacked** and choose this directory (the one with `manifest.json`).
-5. Pin **Fastly Image Inspector** to the toolbar via the puzzle-piece icon.
+5. Pin **Image Inspector** to the toolbar via the puzzle-piece icon.
 6. Open the extension's **Options**, add your CDN hostname(s) under **CDN measurement**, and save — Chrome asks for
    a one-time permission per host. Nothing is measured until you do this.
 
